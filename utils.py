@@ -7,6 +7,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from scipy.ndimage.interpolation import rotate as scipyrotate
+
+from betterresnet import resnet18
 from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, ResNet18, ResNet18BN_AP, ResNet18BN
 
 def get_dataset(dataset, data_path):
@@ -178,6 +180,8 @@ def get_network(model, channel, num_classes, im_size=(32, 32)):
         net = ResNet18BN_AP(channel=channel, num_classes=num_classes)
     elif model == 'ResNet18BN':
         net = ResNet18BN(channel=channel, num_classes=num_classes)
+    elif model == 'BetterResnet18':
+        net = resnet18(channel=channel, num_classes=num_classes)
 
     elif model == 'ConvNetD1':
         net = ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=1, net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)
