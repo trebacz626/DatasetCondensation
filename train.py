@@ -243,8 +243,8 @@ def main():
 
             if it%10 == 0:
                 print('%s iter = %04d, loss = %.4f' % (get_time(), it, loss_avg))
-                #log wandb
-                wandb.log({"loss_avg": loss_avg})
+            #log wandb
+            wandb.log({"loss_avg": loss_avg})
 
             if it == args.Iteration: # only record the final results
                 data_save.append([copy.deepcopy(image_syn.detach().cpu()), copy.deepcopy(label_syn.detach().cpu())])
@@ -256,6 +256,7 @@ def main():
                 image_syn_vis[image_syn_vis<0] = 0.0
                 image_syn_vis[image_syn_vis>1] = 1.0
                 save_image(image_syn_vis, os.path.join(args.save_path, 'syn_%s_%s_%s_%dipc.png'%(args.method, args.dataset, args.model, args.ipc)), nrow=args.ipc) # Trying normalize = True/False may get better visual effects.
+                wandb.log({"synthetic images": [wandb.Image(image_syn_vis[i]) for i in range(args.ipc*num_classes)]})
 
     print('\n==================== Final Results ====================\n')
     for key in model_eval_pool:
