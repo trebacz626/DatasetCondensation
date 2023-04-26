@@ -11,7 +11,7 @@ from scipy.ndimage.interpolation import rotate as scipyrotate
 from betterresnet import resnet18
 from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, ResNet18, ResNet18BN_AP, ResNet18BN
 
-def get_dataset(dataset, data_path):
+def get_dataset(dataset, data_path, batch_size=256, train_trans = []):
     if dataset == 'MNIST':
         channel = 1
         im_size = (28, 28)
@@ -38,8 +38,8 @@ def get_dataset(dataset, data_path):
         channel = 3
         im_size = (32, 32)
         num_classes = 10
-        mean = [0.4377, 0.4438, 0.4728]
-        std = [0.1980, 0.2010, 0.1970]
+        mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
+        std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.SVHN(data_path, split='train', download=True, transform=transform)  # no augmentation
         dst_test = datasets.SVHN(data_path, split='test', download=True, transform=transform)
@@ -49,8 +49,8 @@ def get_dataset(dataset, data_path):
         channel = 3
         im_size = (32, 32)
         num_classes = 2
-        mean = [178.69278044708753, 137.28123995951555, 176.36324185008846]
-        std = [46.344700260152216, 51.21332066737447, 42.02253038386832]
+        mean = [178.69278044708753/255, 137.28123995951555/255, 176.36324185008846/255]
+        std = [46.344700260152216/255, 51.21332066737447/255, 42.02253038386832/255]
         transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((32,32)), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='test', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
@@ -60,9 +60,9 @@ def get_dataset(dataset, data_path):
         channel = 3
         im_size = (96, 96)
         num_classes = 2
-        mean = [178.69278044708753, 137.28123995951555, 176.36324185008846]
-        std = [46.344700260152216, 51.21332066737447, 42.02253038386832]
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
+        mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
+        std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
+        transform = transforms.Compose([transforms.ToTensor()] + train_trans + [transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='test', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
         class_names = [str(c) for c in range(num_classes)]
@@ -71,8 +71,8 @@ def get_dataset(dataset, data_path):
         channel = 3
         im_size = (96, 96)
         num_classes = 2
-        mean = [178.69278044708753, 137.28123995951555, 176.36324185008846]
-        std = [46.344700260152216, 51.21332066737447, 42.02253038386832]
+        mean = [0.4914, 0.4822, 0.4465]
+        std = [0.2023, 0.1994, 0.2010]
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='train', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
@@ -132,7 +132,7 @@ def get_dataset(dataset, data_path):
         exit('unknown dataset: %s'%dataset)
 
 
-    testloader = torch.utils.data.DataLoader(dst_test, batch_size=256, shuffle=False, num_workers=0)
+    testloader = torch.utils.data.DataLoader(dst_test, batch_size=batch_size, shuffle=False, num_workers=0)
     return channel, im_size, num_classes, class_names, mean, std, dst_train, dst_test, testloader
 
 
@@ -378,7 +378,7 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
     lr = float(args.lr_net)
     Epoch = int(args.epoch_eval_train)
     lr_schedule = [Epoch//2+1]
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss().to(args.device)
 
     dst_train = TensorDataset(images_train, labels_train)
@@ -389,7 +389,7 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
         loss_train, acc_train = epoch('train', trainloader, net, optimizer, criterion, args, aug = True)
         if ep in lr_schedule:
             lr *= 0.1
-            optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
+            optimizer = torch.optim.Adam(net.parameters(), lr=lr)
 
     time_train = time.time() - start
     loss_test, acc_test = epoch('test', testloader, net, optimizer, criterion, args, aug = False)
