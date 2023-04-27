@@ -389,7 +389,7 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
     lr = float(args.lr_net)
     Epoch = int(args.epoch_eval_train)
     lr_schedule = [Epoch//2+1]
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
     criterion = nn.CrossEntropyLoss().to(args.device)
 
     dst_train = TensorDataset(images_train, labels_train)
@@ -400,7 +400,7 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
         loss_train, acc_train = epoch('train', trainloader, net, optimizer, criterion, args, aug = True)
         if ep in lr_schedule:
             lr *= 0.1
-            optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+            optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)
 
     time_train = time.time() - start
     loss_test, acc_test = epoch('test', testloader, net, optimizer, criterion, args, aug = False)
@@ -484,7 +484,7 @@ def get_daparam(dataset, model, model_eval, ipc):
     dc_aug_param['noise'] = 0.001
     dc_aug_param['strategy'] = 'none'
 
-    if dataset == 'MNIST':
+    if dataset == 'MNIST' or "PCAM" in dataset:
         dc_aug_param['strategy'] = 'crop_scale_rotate'
 
     if model_eval in ['ConvNetBN']: # Data augmentation makes model training with Batch Norm layer easier.
