@@ -11,7 +11,8 @@ from scipy.ndimage.interpolation import rotate as scipyrotate
 from betterresnet import resnet18
 from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, ResNet18, ResNet18BN_AP, ResNet18BN
 
-def get_dataset(dataset, data_path, batch_size=256, train_trans = []):
+
+def get_dataset(dataset, data_path, batch_size=256):
     if dataset == 'MNIST':
         channel = 1
         im_size = (28, 28)
@@ -49,9 +50,9 @@ def get_dataset(dataset, data_path, batch_size=256, train_trans = []):
         channel = 3
         im_size = (32, 32)
         num_classes = 2
-        mean = [178.69278044708753/255, 137.28123995951555/255, 176.36324185008846/255]
-        std = [46.344700260152216/255, 51.21332066737447/255, 42.02253038386832/255]
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((32,32))]+train_trans+[transforms.Normalize(mean=mean, std=std)])
+        mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
+        std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((32, 32)), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='test', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
         class_names = [str(c) for c in range(num_classes)]
@@ -60,9 +61,9 @@ def get_dataset(dataset, data_path, batch_size=256, train_trans = []):
         channel = 3
         im_size = (32, 32)
         num_classes = 2
-        mean = [178.69278044708753/255, 137.28123995951555/255, 176.36324185008846/255]
-        std = [46.344700260152216/255, 51.21332066737447/255, 42.02253038386832/255]
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((32,32))]+train_trans+[transforms.Normalize(mean=mean, std=std)])
+        mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
+        std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((32, 32)), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='train', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
         class_names = [str(c) for c in range(num_classes)]
@@ -73,7 +74,8 @@ def get_dataset(dataset, data_path, batch_size=256, train_trans = []):
         num_classes = 2
         mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
         std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
-        transform = transforms.Compose([transforms.ToTensor()] + train_trans + [transforms.Normalize(mean=mean, std=std)])
+        transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.PCAM(data_path, split='test', download=True, transform=transform)  # no augmentation
         dst_test = datasets.PCAM(data_path, split='val', download=True, transform=transform)
         class_names = [str(c) for c in range(num_classes)]
@@ -484,7 +486,7 @@ def get_daparam(dataset, model, model_eval, ipc):
     dc_aug_param['noise'] = 0.001
     dc_aug_param['strategy'] = 'none'
 
-    if dataset == 'MNIST' or "PCAM" in dataset:
+    if dataset == 'MNIST' or 'PCAM' in dataset:
         dc_aug_param['strategy'] = 'crop_scale_rotate'
 
     if model_eval in ['ConvNetBN']: # Data augmentation makes model training with Batch Norm layer easier.
