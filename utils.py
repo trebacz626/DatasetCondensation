@@ -7,7 +7,10 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from scipy.ndimage.interpolation import rotate as scipyrotate
+
+from betterresnet import resnet18
 from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, ResNet18, ResNet18BN_AP, ResNet18BN
+
 
 def get_dataset(dataset, data_path, batch_size=256):
     if dataset == 'MNIST':
@@ -36,8 +39,8 @@ def get_dataset(dataset, data_path, batch_size=256):
         channel = 3
         im_size = (32, 32)
         num_classes = 10
-        mean = [0.4377, 0.4438, 0.4728]
-        std = [0.1980, 0.2010, 0.1970]
+        mean = [178.69278044708753 / 255, 137.28123995951555 / 255, 176.36324185008846 / 255]
+        std = [46.344700260152216 / 255, 51.21332066737447 / 255, 42.02253038386832 / 255]
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
         dst_train = datasets.SVHN(data_path, split='train', download=True, transform=transform)  # no augmentation
         dst_test = datasets.SVHN(data_path, split='test', download=True, transform=transform)
@@ -171,7 +174,7 @@ def get_network(model, channel, num_classes, im_size=(32, 32)):
     net_width, net_depth, net_act, net_norm, net_pooling = get_default_convnet_setting()
 
     if model == 'MLP':
-        net = MLP(channel=channel, num_classes=num_classes)
+        net = MLP(channel=channel, num_classes=num_classes, im_size=im_size)
     elif model == 'ConvNet':
         net = ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=net_depth, net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)
     elif model == 'LeNet':
@@ -190,6 +193,8 @@ def get_network(model, channel, num_classes, im_size=(32, 32)):
         net = ResNet18BN_AP(channel=channel, num_classes=num_classes)
     elif model == 'ResNet18BN':
         net = ResNet18BN(channel=channel, num_classes=num_classes)
+    elif model == 'BetterResnet18':
+        net = resnet18(channel=channel, num_classes=num_classes)
 
     elif model == 'ConvNetD1':
         net = ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=1, net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)

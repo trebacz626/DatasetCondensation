@@ -5,6 +5,9 @@ import argparse
 import numpy as np
 import torch
 import torch.nn as nn
+from tqdm import tqdm
+
+import wandb
 from torchvision.utils import save_image
 from utils import get_loops, get_dataset, get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch, DiffAugment, ParamDiffAug
 import wandb
@@ -45,6 +48,7 @@ def main():
         os.mkdir(args.save_path)
 
     eval_it_pool = [i for i in range(0,args.Iteration,100)]+[args.Iteration-1]#np.arange(0, args.Iteration+1, 500).tolist() if args.eval_mode == 'S' or args.eval_mode == 'SS' else [args.Iteration] # The list of iterations when we evaluate models and record results.
+    eval_it_pool = np.array([0,100,200,300,400,500,600,700,800,999])#np.arange(0, args.Iteration+1, 500).tolist() if args.eval_mode == 'S' or args.eval_mode == 'SS' else [args.Iteration] # The list of iterations when we evaluate models and record results.
     print('eval_it_pool: ', eval_it_pool)
     channel, im_size, num_classes, class_names, mean, std, dst_train, dst_test, testloader = get_dataset(args.dataset, args.data_path, batch_size=args.batch_real)
     model_eval_pool = get_eval_pool(args.eval_mode, args.model, args.model)
@@ -67,14 +71,15 @@ def main():
 
         ''' organize the real dataset '''
         images_all = []
-        labels_all = []
         indices_class = [[] for c in range(num_classes)]
+
         for i in tqdm(range(len(dst_train))):
             example = dst_train[i]
             images_all.append(torch.unsqueeze(example[0], dim=0))
             labels_all.append(example[1])
         for i, lab in enumerate(labels_all):
             indices_class[lab].append(i)
+
         images_all = torch.cat(images_all, dim=0)
 
         for c in range(num_classes):
@@ -133,6 +138,8 @@ def main():
                         _, acc_train, acc_test = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args)
                         accs.append(acc_test)
                     print('Evaluate %d random %s, mean = %.4f std = %.4f\n-------------------------'%(len(accs), model_eval, np.mean(accs), np.std(accs)))
+                    # log mean and std and model to wandb
+                    wandb.log({'mean_acc_eval': np.mean(accs), 'std_acc_eval': np.std(accs), 'model_eval': model_eval})
 
                     wandb.log({'mean_acc_eval': np.mean(accs), 'std_acc_eval': np.std(accs), 'model_eval': model_eval})
 
@@ -147,6 +154,8 @@ def main():
                 image_syn_vis[image_syn_vis<0] = 0.0
                 image_syn_vis[image_syn_vis>1] = 1.0
                 save_image(image_syn_vis, save_name, nrow=args.ipc) # Trying normalize = True/False may get better visual effects.
+                # save to wandb
+                wandb.log({"synthetic images": [wandb.Image(save_name)]})
 
                 wandb.log({"synthetic images": [wandb.Image(save_name)]})
 
@@ -228,10 +237,22 @@ def main():
 
             if it%10 == 0:
                 print('%s iter = %04d, loss = %.4f' % (get_time(), it, loss_avg))
+
             wandb.log({"loss_avg": loss_avg})
+
             if it == args.Iteration: # only record the final results
                 data_save.append([copy.deepcopy(image_syn.detach().cpu()), copy.deepcopy(label_syn.detach().cpu())])
                 torch.save({'data': data_save, 'accs_all_exps': accs_all_exps, }, os.path.join(args.save_path, 'res_%s_%s_%s_%dipc.pt'%(args.method, args.dataset, args.model, args.ipc)))
+                # log synthetic images to wandb, where image_syn is ipc images of each class
+                image_syn_vis = copy.deepcopy(image_syn.detach().cpu())
+                for ch in range(channel):
+                    image_syn_vis[:, ch] = image_syn_vis[:, ch] * std[ch] + mean[ch]
+                image_syn_vis[image_syn_vis < 0] = 0.0
+                image_syn_vis[image_syn_vis > 1] = 1.0
+                save_image(image_syn_vis, os.path.join(args.save_path, 'syn_%s_%s_%s_%dipc.png' % (
+                args.method, args.dataset, args.model, args.ipc)),
+                           nrow=args.ipc)  # Trying normalize = True/False may get better visual effects.
+                wandb.log({"synthetic images": [wandb.Image(image_syn_vis[i]) for i in range(args.ipc * num_classes)]})
 
                 # log synthetic images to wandb, where image_syn is ipc images of each class
                 image_syn_vis = copy.deepcopy(image_syn.detach().cpu())
